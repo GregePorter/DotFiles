@@ -4,30 +4,74 @@ filetype off
 syntax enable
 set background=dark
 
-hi MatchParen cterm=bold ctermbg=none ctermfg=magenta "hightlight color for matching brackets 
- 
 let mapleader = "\<Space>"
 let g:mapleader = "\<Space>"
 
-call plug#begin('~/.vim/plugged')
-	Plug 'fatih/vim-go', { 'do': ':GoUpdateBinaries' }
+call plug#begin('~/.config/nvim/plugged')
     Plug 'scrooloose/nerdtree', { 'on': ['NERDTreeToggle', 'NERDTree'] }
     Plug 'Xuyuanp/nerdtree-git-plugin'
-    Plug 'pangloss/vim-javascript'
-    Plug 'leafgarland/typescript-vim'
-    Plug 'maxmellon/vim-jsx-pretty'
-    Plug 'junegunn/fzf.vim'
-    Plug 'junegunn/fzf'
-    Plug 'Raimondi/delimitMate'
-    Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
-    Plug 'stamblerre/gocode', { 'rtp': 'nvim', 'do': '~/.config/nvim/plugged/gocode/nvim/symlink.sh' }
-    Plug 'ludovicchabant/vim-gutentags'
+    Plug 'skamsie/vim-lineletters'
+    Plug 'Shougo/ddc.vim'
+    Plug 'Shougo/deoplete.nvim', { 'do' : ':UpdateRemotePlugins' }
+    Plug 'junegunn/fzf', {'do': { -> fzf#install()} }
+    Plug 'vim-denops/denops.vim'
+
+    " Tabs
     Plug 'zefei/vim-wintabs'
     Plug 'zefei/vim-wintabs-powerline'
-    Plug 'craigemery/vim-autotag'
-    Plug 'dpelle/vim-LanguageTool'
+
+    " Install your UIs
+    Plug 'Shougo/ddc-ui-native'
+
+    " refer to the following for sources for auto-completion
+    " https://github.com/Shougo/deoplete.nvim/wiki/Completion-Sources 
+    " Install your sources
+    Plug 'Shougo/ddc-source-around'
+    Plug 'deoplete-plugins/deoplete-jedi'
+
+    " Install your filters
+    Plug 'Shougo/ddc-matcher_head'
+    Plug 'Shougo/ddc-sorter_rank'
+
 call plug#end()
 
+"DDC configuration stuff
+call ddc#custom#patch_global('ui', 'native')
+
+" Use around source.
+" https://github.com/Shougo/ddc-source-around
+call ddc#custom#patch_global('sources', ['around'])
+
+" Use matcher_head and sorter_rank.
+" https://github.com/Shougo/ddc-matcher_head
+" https://github.com/Shougo/ddc-sorter_rank
+call ddc#custom#patch_global('sourceOptions', #{
+      \ _: #{
+      \   matchers: ['matcher_head'],
+      \   sorters: ['sorter_rank']},
+      \ })
+
+" Change source options
+call ddc#custom#patch_global('sourceOptions', #{
+      \   around: #{ mark: 'A' },
+      \ })
+call ddc#custom#patch_global('sourceParams', #{
+      \   around: #{ maxSize: 500 },
+      \ })
+
+" Mappings
+
+" <TAB>: completion.
+inoremap <silent><expr> <TAB>
+\ pumvisible() ? '<C-n>' :
+\ (col('.') <= 1 <Bar><Bar> getline('.')[col('.') - 2] =~# '\s') ?
+\ '<TAB>' : ddc#map#manual_complete()
+
+" <S-TAB>: completion back.
+inoremap <expr><S-TAB>  pumvisible() ? '<C-p>' : '<C-h>'
+
+" Use ddc.
+call ddc#enable()
 let g:deoplete#enable_at_startup = 1
 
 let g:NERDTreeIndicatorMapCustom = {
@@ -42,17 +86,20 @@ let g:NERDTreeIndicatorMapCustom = {
      \"Unknown"   : "?"
      \}
 
-let g:languagetool_jar='~/LanguageTool-5.5/languagetool-commandline.jar'
-
-set ffs=unix
-set ff=unix
-
 noremap <leader>t :NERDTree<CR>
 noremap <leader>f :FZF<CR>
-noremap <leader>F :Rg<CR>
+
+"I don't have this set up yet. I think it has to have The Silver Search install
+"noremap <leader>F :Rg<CR>
 
 "You need to open NERDTree with <leader>t first before NERDTreeFind will work"
 noremap <leader>T :NERDTreeFind<CR>
+
+"sets the current directory to where this file is, I think 
+noremap <leader>. :cd %:p:h<CR>
+
+"turns the line numbers into letters
+map <leader>, <Plug>LineLetters
 
 nnoremap <leader><Tab> :bnext<CR>
 nnoremap <leader><S-Tab> :bprevious<CR>
@@ -66,15 +113,23 @@ nnoremap <leader>l <C-w>l
 nnoremap <leader>v "+p
 nnoremap ; :
 
+noremap <silent> k gk
+noremap <silent> j gj
+noremap <silent> 0 g0
+noremap <silent> $ g$
 
-"Define where the ctags tag files are"
-set tags=./tags;,tags;
+nnoremap <leader>l <C-w>l
+" resize current buffer by +/- 5
+nnoremap <leader><Left> :vertical resize -5<cr>
+nnoremap <leader><Down> :resize +5<cr>
+nnoremap <leader><Up> :resize -5<cr>
+nnoremap <leader><Right> :vertical resize +5<cr>
 
-"Run specific Go file"
-nnoremap <leader>r :GoRun %
-nnoremap <leader>b :GoBuild<CR>
+
+set statusline+=%F "Add full file path to your existing statusline
 set softtabstop=4 "how many columns vim uses when you hit Tab in insert mode"
 set shiftwidth=4 "sets the number of spaces used when shiftsind"
+set textwidth=80 "displays a line at column 80
 set tabstop=4 "how many columns a tab counts for
 set smarttab "inset softtapstop of tabstop when Tab is pressed
 set autoindent "copy indent from current line when starting a new line
@@ -98,15 +153,13 @@ set backup "Make a backup before overwriting a file
 set backupdir=~/.vim/backups "sets the location of the backup
 set directory=~/.vim/tmp "sets the location of the tmp directory
 set undodir=~/.vim/undo "sets the location of the undo files
-set pastetoggle=<F2> "Allows you to paste from the sytem clipboard after pressing F2
-set grepprg=ag "sets grep to use Ag which is similar to Ack - make sure you install The Silver Search with brew install the_silver_seacher
 set shiftround ">> will push the line shiftwidth-1
 set nofoldenable "all folds are open
-set tags=.tags; "sets the location of the tag file
+
 set hidden "allows for hidden buffers, so you can change buffers without having to save
 
 set scrolloff=5 "Start scrolling when we're 4 lines away
 set sidescrolloff=15
 set sidescroll=2
 
-noremap <leader>. :cd %:p:h<CR>
+
